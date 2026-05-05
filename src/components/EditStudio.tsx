@@ -708,13 +708,25 @@ export default function EditStudio() {
 
       {chaptersOpen && <ChaptersPanel onClose={() => setChaptersOpen(false)} segments={chapters} onSeek={seek} />}
 
-      {/* Preview */}
-      <PreviewArea
-        videoRef={videoRef}
-        mainVideo={mainVideo}
-        mainSlide={mainSlide}
-        overlayImages={overlayImages}
-      />
+      {/* Preview + inline record panel side-by-side */}
+      <div className="flex flex-1 items-stretch gap-4 px-6 pb-4 pt-4 min-h-0">
+        {recordOpen && (
+          <RecordSidebar
+            open={recordOpen}
+            onClose={() => setRecordOpen(false)}
+            playheadTime={time}
+            onRecordingChange={setIsRecording}
+          />
+        )}
+        <div className="flex flex-1 min-w-0">
+          <PreviewArea
+            videoRef={videoRef}
+            mainVideo={mainVideo}
+            mainSlide={mainSlide}
+            overlayImages={overlayImages}
+          />
+        </div>
+      </div>
 
       {/* hidden audio elements */}
       {segments.filter((s) => s.kind === "audio").map((s) => (
