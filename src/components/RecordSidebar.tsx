@@ -5,6 +5,10 @@ import { useStudio } from "@/state/studio";
 
 type RecState = "idle" | "recording" | "processing" | "saved";
 
+/**
+ * Inline recording panel: webcam preview rendered alongside the main stage.
+ * Shows webcam on the left of the preview, with REC controls below.
+ */
 export default function RecordSidebar({
   open,
   onClose,
@@ -32,10 +36,8 @@ export default function RecordSidebar({
   const [state, setState] = useState<RecState>("idle");
   const [elapsed, setElapsed] = useState(0);
 
-  // Init / teardown camera with sidebar open state
   useEffect(() => {
     if (!open) {
-      // stop on close
       camStream.current?.getTracks().forEach((t) => t.stop());
       screenStream.current?.getTracks().forEach((t) => t.stop());
       camStream.current = null;
@@ -53,20 +55,14 @@ export default function RecordSidebar({
         s.getAudioTracks().forEach((t) => (t.enabled = micOn));
       })
       .catch(() => toast.error("Não foi possível acessar webcam/microfone"));
-    return () => {
-      if (composeRaf.current) cancelAnimationFrame(composeRaf.current);
-    };
+    return () => { if (composeRaf.current) cancelAnimationFrame(composeRaf.current); };
     // eslint-disable-next-line
   }, [open]);
 
   useEffect(() => { camStream.current?.getVideoTracks().forEach((t) => (t.enabled = camOn)); }, [camOn]);
   useEffect(() => { camStream.current?.getAudioTracks().forEach((t) => (t.enabled = micOn)); }, [micOn]);
+  useEffect(() => { onRecordingChange(state === "recording"); }, [state, onRecordingChange]);
 
-  useEffect(() => {
-    onRecordingChange(state === "recording");
-  }, [state, onRecordingChange]);
-
-  // timer
   useEffect(() => {
     if (state !== "recording") return;
     const id = setInterval(() => setElapsed(Math.floor((Date.now() - startTime.current) / 1000)), 250);
@@ -151,19 +147,11 @@ export default function RecordSidebar({
       const blob = new Blob(chunks.current, { type: "video/webm" });
       const url = URL.createObjectURL(blob);
       const dur = (Date.now() - startTime.current) / 1000;
-      const result = {
-        videoUrl: url,
-        duration: dur,
-        slides: [],
-        slideMarkers: [],
-        startAt: startAtRef.current,
-      };
-      // If no recording yet (empty project), set as base; otherwise append
+      const result = { videoUrl: url, duration: dur, slides: [], slideMarkers: [], startAt: startAtRef.current };
       if (recording) setAppendRecording(result);
       else setRecording(result);
       setState("saved");
       toast.success("Gravação adicionada");
-      // close after small delay for feedback
       setTimeout(() => { onClose(); }, 500);
     };
     rec.start(250);
@@ -180,38 +168,17 @@ export default function RecordSidebar({
 
   const isRecording = state === "recording";
 
-  return (
-    <aside
-      className={`fixed right-0 top-0 z-40 flex h-screen w-[360px] flex-col border-l border-border bg-background shadow-2xl transition-transform duration-300 ease-out ${
-        open ? "translate-x-0" : "translate-x-full"
-      }`}
-      aria-hidden={!open}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[hsl(var(--rec))]/15 text-[hsl(var(--rec))]">
-            <VideoIcon className="h-4 w-4" />
-          </div>
-          <div>
-            <div className="text-sm font-semibold">Gravar cena</div>
-            <div className="text-[11px] text-muted-foreground">
-              Inserir em <span className="font-mono">{fmt(playheadTime)}</span>
-            </div>
-          </div>
-        </div>
-        <button
-          onClick={() => { if (isRecording) return; onClose(); }}
-          disabled={isRecording}
-          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
-          title={isRecording ? "Pare a gravação primeiro" : "Fechar"}
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
+  if (!open) return null;
 
-      {/* Webcam preview - protagonist */}
-      <div className="relative m-4 flex-1 overflow-hidden rounded-2xl bg-black ring-1 ring-border">
+  return (
+    <div className="flex h-full flex-col items-center gap-3 animate-fade-in">
+      {/* Webcam preview block */}
+      <div
+        className={`relative h-full max-h-[400px] aspect-[3/4] overflow-hidden rounded-2xl bg-black ring-2 transition-all ${
+          isRecording ? "ring-[hsl(var(--rec))] shadow-[0_0_0_4px_hsl(var(--rec)/0.15)]" : "ring-primary/40"
+        }`}
+        style={{ minWidth: 240 }}
+      >
         {camOn ? (
           <video ref={camRef} autoPlay muted playsInline className="h-full w-full object-cover" />
         ) : (
@@ -221,73 +188,76 @@ export default function RecordSidebar({
           </div>
         )}
 
-        {isRecording && (
-          <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-[hsl(var(--rec))] px-2.5 py-1 text-[11px] font-semibold text-white shadow-lg">
+        {/* REC badge */}
+        {isRecording ? (
+          <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded-full bg-[hsl(var(--rec))] px-2.5 py-1 text-[11px] font-semibold text-white shadow-lg">
             <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
             REC <span className="font-mono tabular-nums">{fmt(elapsed)}</span>
           </div>
-        )}
-
-        {sharing && (
-          <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-md bg-black/70 px-2 py-1 text-[11px] text-white">
-            <MonitorUp className="h-3 w-3" /> Tela
+        ) : (
+          <div className="absolute left-2 top-2 rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-semibold text-white">
+            PRÉ-VISUALIZAÇÃO
           </div>
         )}
-      </div>
 
-      {/* Source toggles */}
-      <div className="grid grid-cols-3 gap-2 px-4">
-        <SourceBtn active={camOn} disabled={isRecording} onClick={() => setCamOn((v) => !v)} icon={camOn ? <VideoIcon className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />} label="Webcam" />
-        <SourceBtn active={micOn} disabled={isRecording} onClick={() => setMicOn((v) => !v)} icon={micOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />} label="Áudio" />
-        <SourceBtn active={sharing} disabled={isRecording} onClick={toggleScreen} icon={<MonitorUp className="h-4 w-4" />} label="Tela" />
-      </div>
-
-      {/* REC button */}
-      <div className="flex flex-col items-center gap-2 px-4 py-5">
-        {state === "processing" ? (
-          <button disabled className="flex w-full items-center justify-center gap-2 rounded-full bg-muted px-4 py-3 text-sm font-semibold text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Processando...
-          </button>
-        ) : !isRecording ? (
+        {/* Close (X) when idle */}
+        {!isRecording && state !== "processing" && (
           <button
-            onClick={startRec}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-[hsl(var(--rec))] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+            onClick={onClose}
+            className="absolute right-2 top-2 rounded-full bg-black/60 p-1 text-white transition hover:bg-black/80"
+            title="Fechar"
           >
-            <Circle className="h-4 w-4 fill-current" /> Iniciar gravação
-          </button>
-        ) : (
-          <button
-            onClick={stopRec}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-[hsl(var(--rec))] px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:opacity-90"
-          >
-            <Square className="h-4 w-4 fill-current" /> Parar e salvar
+            <X className="h-3.5 w-3.5" />
           </button>
         )}
-        <p className="text-center text-[11px] text-muted-foreground">
-          {isRecording
-            ? "Edição desativada durante a gravação"
-            : "A gravação será inserida na timeline"}
-        </p>
       </div>
-    </aside>
+
+      {/* Controls below the webcam */}
+      <div className="flex items-center gap-2 rounded-full bg-card px-2 py-1.5 ring-1 ring-border shadow-sm">
+        <SourceBtn active={camOn} disabled={isRecording} onClick={() => setCamOn((v) => !v)}
+          icon={camOn ? <VideoIcon className="h-3.5 w-3.5" /> : <VideoOff className="h-3.5 w-3.5" />} title="Webcam" />
+        <SourceBtn active={micOn} disabled={isRecording} onClick={() => setMicOn((v) => !v)}
+          icon={micOn ? <Mic className="h-3.5 w-3.5" /> : <MicOff className="h-3.5 w-3.5" />} title="Microfone" />
+        <SourceBtn active={sharing} disabled={isRecording} onClick={toggleScreen}
+          icon={<MonitorUp className="h-3.5 w-3.5" />} title="Tela" />
+
+        <div className="mx-1 h-5 w-px bg-border" />
+
+        {state === "processing" ? (
+          <button disabled className="flex items-center gap-1.5 rounded-full bg-muted px-4 py-1.5 text-xs font-semibold text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Processando
+          </button>
+        ) : !isRecording ? (
+          <button onClick={startRec}
+            className="flex items-center gap-1.5 rounded-full bg-[hsl(var(--rec))] px-4 py-1.5 text-xs font-semibold text-white transition hover:opacity-90">
+            <Circle className="h-3 w-3 fill-current" /> Gravar
+          </button>
+        ) : (
+          <button onClick={stopRec}
+            className="flex items-center gap-1.5 rounded-full bg-[hsl(var(--rec))] px-4 py-1.5 text-xs font-semibold text-white shadow-lg transition hover:opacity-90">
+            <Square className="h-3 w-3 fill-current" /> Parar
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
 function SourceBtn({
-  active, disabled, onClick, icon, label,
-}: { active: boolean; disabled?: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
+  active, disabled, onClick, icon, title,
+}: { active: boolean; disabled?: boolean; onClick: () => void; icon: React.ReactNode; title: string }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`flex flex-col items-center justify-center gap-1 rounded-lg px-2 py-2.5 text-[11px] font-medium ring-1 transition ${
+      title={title}
+      className={`flex h-8 w-8 items-center justify-center rounded-full transition ${
         active
-          ? "bg-primary/10 text-primary ring-primary/40"
-          : "bg-card text-muted-foreground ring-border hover:bg-muted"
+          ? "bg-primary/15 text-primary"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground"
       } disabled:cursor-not-allowed disabled:opacity-40`}
     >
       {icon}
-      {label}
     </button>
   );
 }

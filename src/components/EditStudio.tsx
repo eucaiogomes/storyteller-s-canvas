@@ -708,13 +708,25 @@ export default function EditStudio() {
 
       {chaptersOpen && <ChaptersPanel onClose={() => setChaptersOpen(false)} segments={chapters} onSeek={seek} />}
 
-      {/* Preview */}
-      <PreviewArea
-        videoRef={videoRef}
-        mainVideo={mainVideo}
-        mainSlide={mainSlide}
-        overlayImages={overlayImages}
-      />
+      {/* Preview + inline record panel side-by-side */}
+      <div className="flex flex-1 items-stretch gap-4 px-6 pb-4 pt-4 min-h-0">
+        {recordOpen && (
+          <RecordSidebar
+            open={recordOpen}
+            onClose={() => setRecordOpen(false)}
+            playheadTime={time}
+            onRecordingChange={setIsRecording}
+          />
+        )}
+        <div className="flex flex-1 min-w-0">
+          <PreviewArea
+            videoRef={videoRef}
+            mainVideo={mainVideo}
+            mainSlide={mainSlide}
+            overlayImages={overlayImages}
+          />
+        </div>
+      </div>
 
       {/* hidden audio elements */}
       {segments.filter((s) => s.kind === "audio").map((s) => (
@@ -939,18 +951,11 @@ export default function EditStudio() {
         <span><kbd className="rounded bg-muted px-1 py-0.5 text-[9px] font-mono">Del</kbd> Apagar seleção</span>
       </div>
 
-      {/* Recording overlay (blocks edits while REC) */}
-      {isRecording && (
-        <div className="pointer-events-auto absolute inset-y-0 left-0 right-[360px] z-30 cursor-not-allowed bg-background/40 backdrop-blur-[1px] animate-fade-in" />
-      )}
 
-      {/* Record sidebar */}
-      <RecordSidebar
-        open={recordOpen}
-        onClose={() => setRecordOpen(false)}
-        playheadTime={time}
-        onRecordingChange={setIsRecording}
-      />
+      {/* Subtle blocker over the timeline area while REC (keeps preview clickable so user sees the slide) */}
+      {isRecording && (
+        <div className="pointer-events-auto absolute bottom-0 left-0 right-0 top-1/2 z-30 cursor-not-allowed bg-background/30 backdrop-blur-[1px] animate-fade-in" />
+      )}
     </div>
   );
 }
@@ -1048,7 +1053,7 @@ function PreviewArea({
 
   if (mainVideo && !hasStage) {
     return (
-      <div className="flex flex-1 items-center justify-center px-6 pb-4 pt-4">
+      <div className="flex flex-1 items-center justify-center">
         <div className="relative aspect-video h-full max-h-[480px] overflow-hidden rounded-2xl bg-black shadow-lg">
           <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" muted />
         </div>
@@ -1057,7 +1062,7 @@ function PreviewArea({
   }
 
   return (
-    <div className="flex flex-1 items-stretch justify-center px-6 pb-4 pt-4">
+    <div className="flex flex-1 items-stretch justify-center">
       <div
         ref={stageRef}
         className="relative flex h-full max-h-[480px] flex-1 items-center justify-center rounded-2xl bg-[hsl(var(--slide-bg))] p-4 ring-1 ring-white/5 overflow-hidden"
