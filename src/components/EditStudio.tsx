@@ -938,6 +938,19 @@ export default function EditStudio() {
         <span><kbd className="rounded bg-muted px-1 py-0.5 text-[9px] font-mono">Space</kbd> Play/Pause</span>
         <span><kbd className="rounded bg-muted px-1 py-0.5 text-[9px] font-mono">Del</kbd> Apagar seleção</span>
       </div>
+
+      {/* Recording overlay (blocks edits while REC) */}
+      {isRecording && (
+        <div className="pointer-events-auto absolute inset-y-0 left-0 right-[360px] z-30 cursor-not-allowed bg-background/40 backdrop-blur-[1px] animate-fade-in" />
+      )}
+
+      {/* Record sidebar */}
+      <RecordSidebar
+        open={recordOpen}
+        onClose={() => setRecordOpen(false)}
+        playheadTime={time}
+        onRecordingChange={setIsRecording}
+      />
     </div>
   );
 }
