@@ -58,6 +58,8 @@ export default function EditStudio() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const selectedId = selectedIds.size === 1 ? Array.from(selectedIds)[0] : null;
   const [zoom, setZoom] = useState(1);
+  const [recordOpen, setRecordOpen] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
 
   // ===== Undo / Redo history =====
   const historyRef = useRef<Segment[][]>([]);
