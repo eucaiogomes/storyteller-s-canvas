@@ -8,6 +8,7 @@ import JSZip from "jszip";
 import { renderPptxToImages } from "@/lib/pptx";
 import { useStudio } from "@/state/studio";
 import ChaptersPanel from "@/components/ChaptersPanel";
+import RecordSidebar from "@/components/RecordSidebar";
 import { toast } from "sonner";
 
 type Kind = "video" | "slide" | "audio" | "image";
