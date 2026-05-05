@@ -140,13 +140,18 @@ export default function EditStudio() {
   useEffect(() => {
     if (!appendRecording) return;
     const r = appendRecording;
+    const newIds: string[] = [];
     setSegments((prev) => {
-      const tEnd = prev.reduce((a, s) => Math.max(a, endOf(s)), 0);
+      const tEnd = r.startAt !== undefined
+        ? r.startAt
+        : prev.reduce((a, s) => Math.max(a, endOf(s)), 0);
       const acc: Segment[] = [...prev];
       const place = (seg: Omit<Segment, "layer" | "id">, preferred?: number) => {
         const layer = findFreeLayer(acc, seg.start, seg.srcEnd - seg.srcStart, undefined, preferred);
-        const full: Segment = { ...seg, id: uid(), layer };
+        const id = uid();
+        const full: Segment = { ...seg, id, layer };
         acc.push(full);
+        newIds.push(id);
       };
       r.slideMarkers.forEach((m, i) => {
         const next = r.slideMarkers[i + 1]?.time ?? r.duration;
@@ -157,8 +162,10 @@ export default function EditStudio() {
       place({ kind: "audio", start: tEnd, srcStart: 0, srcEnd: r.duration, label: "Áudio", mediaUrl: r.videoUrl, mediaDuration: r.duration }, 2);
       return acc;
     });
+    // Auto-select the new video segment for clarity
+    if (newIds.length > 0) setSelectedIds(new Set([newIds[newIds.length - 2] ?? newIds[0]]));
     setAppendRecording(null);
-    toast.success("Nova cena adicionada à timeline");
+    toast.success("Gravação adicionada à timeline");
   }, [appendRecording, setAppendRecording]);
 
   const duration = useMemo(
