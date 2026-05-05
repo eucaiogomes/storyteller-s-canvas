@@ -677,7 +677,14 @@ export default function EditStudio() {
           <button onClick={() => setChaptersOpen(true)} className="flex items-center gap-1.5 rounded-md bg-card px-3 py-1.5 text-sm ring-1 ring-border transition-colors hover:bg-muted">
             <List className="h-4 w-4" /> Capítulos
           </button>
-          <button onClick={() => setView("record")} className="flex items-center gap-1.5 rounded-md bg-card px-3 py-1.5 text-sm ring-1 ring-border transition-colors hover:bg-muted">
+          <button
+            onClick={() => setRecordOpen(true)}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              recordOpen
+                ? "bg-[hsl(var(--rec))] text-white"
+                : "bg-card ring-1 ring-border hover:bg-muted"
+            }`}
+          >
             <Video className="h-4 w-4" /> Gravar nova cena
           </button>
           <label className="flex cursor-pointer items-center gap-1.5 rounded-md bg-card px-3 py-1.5 text-sm ring-1 ring-border transition-colors hover:bg-muted">
