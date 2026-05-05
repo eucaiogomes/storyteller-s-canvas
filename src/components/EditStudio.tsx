@@ -61,6 +61,9 @@ export default function EditStudio() {
   const [recordOpen, setRecordOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
 
+  // When recording starts, pause playback to keep the playhead anchored
+  useEffect(() => { if (isRecording) setPlaying(false); }, [isRecording]);
+
   // ===== Undo / Redo history =====
   const historyRef = useRef<Segment[][]>([]);
   const futureRef = useRef<Segment[][]>([]);
