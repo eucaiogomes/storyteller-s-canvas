@@ -6,6 +6,8 @@ export type RecordingResult = {
   duration: number; // seconds
   slides: Slide[];
   slideMarkers: { slideId: string; time: number }[]; // when each slide was shown
+  /** Insert at this timeline time. When undefined, appends at end. */
+  startAt?: number;
 };
 
 type Ctx = {

@@ -8,6 +8,7 @@ import JSZip from "jszip";
 import { renderPptxToImages } from "@/lib/pptx";
 import { useStudio } from "@/state/studio";
 import ChaptersPanel from "@/components/ChaptersPanel";
+import RecordSidebar from "@/components/RecordSidebar";
 import { toast } from "sonner";
 
 type Kind = "video" | "slide" | "audio" | "image";
@@ -57,6 +58,11 @@ export default function EditStudio() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const selectedId = selectedIds.size === 1 ? Array.from(selectedIds)[0] : null;
   const [zoom, setZoom] = useState(1);
+  const [recordOpen, setRecordOpen] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+
+  // When recording starts, pause playback to keep the playhead anchored
+  useEffect(() => { if (isRecording) setPlaying(false); }, [isRecording]);
 
   // ===== Undo / Redo history =====
   const historyRef = useRef<Segment[][]>([]);
@@ -139,13 +145,18 @@ export default function EditStudio() {
   useEffect(() => {
     if (!appendRecording) return;
     const r = appendRecording;
+    const newIds: string[] = [];
     setSegments((prev) => {
-      const tEnd = prev.reduce((a, s) => Math.max(a, endOf(s)), 0);
+      const tEnd = r.startAt !== undefined
+        ? r.startAt
+        : prev.reduce((a, s) => Math.max(a, endOf(s)), 0);
       const acc: Segment[] = [...prev];
       const place = (seg: Omit<Segment, "layer" | "id">, preferred?: number) => {
         const layer = findFreeLayer(acc, seg.start, seg.srcEnd - seg.srcStart, undefined, preferred);
-        const full: Segment = { ...seg, id: uid(), layer };
+        const id = uid();
+        const full: Segment = { ...seg, id, layer };
         acc.push(full);
+        newIds.push(id);
       };
       r.slideMarkers.forEach((m, i) => {
         const next = r.slideMarkers[i + 1]?.time ?? r.duration;
@@ -156,8 +167,10 @@ export default function EditStudio() {
       place({ kind: "audio", start: tEnd, srcStart: 0, srcEnd: r.duration, label: "Áudio", mediaUrl: r.videoUrl, mediaDuration: r.duration }, 2);
       return acc;
     });
+    // Auto-select the new video segment for clarity
+    if (newIds.length > 0) setSelectedIds(new Set([newIds[newIds.length - 2] ?? newIds[0]]));
     setAppendRecording(null);
-    toast.success("Nova cena adicionada à timeline");
+    toast.success("Gravação adicionada à timeline");
   }, [appendRecording, setAppendRecording]);
 
   const duration = useMemo(
@@ -664,7 +677,14 @@ export default function EditStudio() {
           <button onClick={() => setChaptersOpen(true)} className="flex items-center gap-1.5 rounded-md bg-card px-3 py-1.5 text-sm ring-1 ring-border transition-colors hover:bg-muted">
             <List className="h-4 w-4" /> Capítulos
           </button>
-          <button onClick={() => setView("record")} className="flex items-center gap-1.5 rounded-md bg-card px-3 py-1.5 text-sm ring-1 ring-border transition-colors hover:bg-muted">
+          <button
+            onClick={() => setRecordOpen(true)}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              recordOpen
+                ? "bg-[hsl(var(--rec))] text-white"
+                : "bg-card ring-1 ring-border hover:bg-muted"
+            }`}
+          >
             <Video className="h-4 w-4" /> Gravar nova cena
           </button>
           <label className="flex cursor-pointer items-center gap-1.5 rounded-md bg-card px-3 py-1.5 text-sm ring-1 ring-border transition-colors hover:bg-muted">
@@ -918,6 +938,19 @@ export default function EditStudio() {
         <span><kbd className="rounded bg-muted px-1 py-0.5 text-[9px] font-mono">Space</kbd> Play/Pause</span>
         <span><kbd className="rounded bg-muted px-1 py-0.5 text-[9px] font-mono">Del</kbd> Apagar seleção</span>
       </div>
+
+      {/* Recording overlay (blocks edits while REC) */}
+      {isRecording && (
+        <div className="pointer-events-auto absolute inset-y-0 left-0 right-[360px] z-30 cursor-not-allowed bg-background/40 backdrop-blur-[1px] animate-fade-in" />
+      )}
+
+      {/* Record sidebar */}
+      <RecordSidebar
+        open={recordOpen}
+        onClose={() => setRecordOpen(false)}
+        playheadTime={time}
+        onRecordingChange={setIsRecording}
+      />
     </div>
   );
 }
