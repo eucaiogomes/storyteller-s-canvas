@@ -1069,7 +1069,7 @@ function PreviewArea({
   }
 
   return (
-    <div className="flex flex-1 items-stretch justify-center px-6 pb-4 pt-4">
+    <div className="flex flex-1 items-stretch justify-center">
       <div
         ref={stageRef}
         className="relative flex h-full max-h-[480px] flex-1 items-center justify-center rounded-2xl bg-[hsl(var(--slide-bg))] p-4 ring-1 ring-white/5 overflow-hidden"
